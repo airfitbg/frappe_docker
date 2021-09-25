@@ -1,35 +1,6 @@
-version: "3"
+version: "3.4"
 
 services:
-  traefik:
-    image: "traefik:v2.2"
-    command:
-      - "--log.level=DEBUG"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.myresolver.acme.httpchallenge=true"
-      - "--certificatesresolvers.myresolver.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.myresolver.acme.email=${LETSENCRYPT_EMAIL}"
-      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
-    labels:
-      # enable traefik
-      - "traefik.enable=true"
-      # global redirect to https for production only
-      - "${HTTPS_REDIRECT_RULE_LABEL}"
-      - "${HTTPS_REDIRECT_ENTRYPOINT_LABEL}"
-      - "${HTTPS_REDIRECT_MIDDLEWARE_LABEL}"
-      # middleware redirect for production only
-      - "${HTTPS_USE_REDIRECT_MIDDLEWARE_LABEL}"
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - cert-vol:/letsencrypt
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    userns_mode: "host"
-
   erpnext-nginx:
     image: frappe/erpnext-nginx:${ERPNEXT_VERSION}
     restart: on-failure
@@ -39,12 +10,6 @@ services:
       - FRAPPE_SOCKETIO=frappe-socketio
       - SOCKETIO_PORT=9000
       - SKIP_NGINX_TEMPLATE_GENERATION=${SKIP_NGINX_TEMPLATE_GENERATION}
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.erpnext-nginx.rule=Host(${SITES})"
-      - "${ENTRYPOINT_LABEL}"
-      - "${CERT_RESOLVER_LABEL}"
-      - "traefik.http.services.erpnext-nginx.loadbalancer.server.port=80"
     volumes:
       - sites-vol:/var/www/html/sites:rw
       - assets-vol:/assets:rw
@@ -154,7 +119,7 @@ services:
     depends_on:
       - erpnext-python
     environment:
-      - SITE_NAME=${SITE_NAME}
+      - SITE_NAME=${ERP_SITE_NAME}
       - DB_ROOT_USER=${DB_ROOT_USER}
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
